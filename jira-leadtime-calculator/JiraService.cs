@@ -1,9 +1,11 @@
-﻿using jira_leadtime_calculator.JiraApiClient;
+﻿using Google.Apis.Sheets.v4.Data;
+using jira_leadtime_calculator.JiraApiClient;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Google.Apis.Requests.BatchRequest;
 
 namespace jira_leadtime_calculator
 {
@@ -18,7 +20,17 @@ namespace jira_leadtime_calculator
         public DateTime? DateMovedToInTest { get; set; } // In Test, Test Feedback
         public DateTime? DateMovedToReadyToRelease { get; set; } // Ready to Release
         public DateTime Created { get; set; }
-        public DateTime Resolved { get; set; }
+        public DateTime? Resolved { get; set; }
+    }
+
+    public class IssueStatusChangeData
+    {
+        public DateTime? DateMovedToInProgress { get; set; } // In Progress
+        public DateTime? DateMovedToInReview { get; set; }
+        public DateTime? DateMovedToReadyToTest { get; set; } // Ready to Test
+        public DateTime? DateMovedToInTest { get; set; } // In Test, Test Feedback
+        public DateTime? DateMovedToReadyToRelease { get; set; } // Ready to Release
+        public DateTime? DateResolved { get; set; }
     }
 
     /// <summary>
@@ -43,11 +55,15 @@ namespace jira_leadtime_calculator
             {
                 if (int.TryParse(x.id, out var id))
                 {
+                    // try and get 
+                    var statusChangedDate = DateTime.Parse(x.fields.statuscategorychangedate);
+
                     return new IssueData
                     {
                         IssueKey = x.key,
                         Summary = x.fields.summary,
                         Status = x.fields.status.name,
+                        Created = DateTime.Parse(x.fields.created)
                     };
                 }
 
@@ -57,6 +73,30 @@ namespace jira_leadtime_calculator
             // for each of the issues returned we need to get their changelog data. This needs to be done individually for each jira issue
 
             // an improvement would be to read the google sheet first. For anything which is marked as done and already on the sheet, we don't need to read it again
+        }
+
+        public async Task<IssueStatusChangeData> GetIssueStatusChangeData(string issueKey)
+        {
+            var response = await _apiClient.GetIssueChangeLog(issueKey);
+
+            return new IssueStatusChangeData
+            {
+                DateMovedToInProgress = GetStatusChangeDate("In Progress", response.values),
+                DateMovedToInReview = GetStatusChangeDate("In Review", response.values),
+                DateMovedToReadyToTest = GetStatusChangeDate("Ready to Test", response.values),
+                DateMovedToInTest = GetStatusChangeDate("In Test", response.values),
+                DateMovedToReadyToRelease = GetStatusChangeDate("Ready to Release", response.values),
+                DateResolved = GetStatusChangeDate("Done", response.values)
+            };
+        }
+
+        private DateTime? GetStatusChangeDate(string status, List<IssueChangeLogDto> changeLogs)
+        {
+            var statusChangeItem = changeLogs.FirstOrDefault(x => x.items.Any(y => y.field == "status" && y.toString == status));
+
+            if (statusChangeItem == null) return null;
+
+            return DateTime.Parse(statusChangeItem.created);
         }
     }
 }

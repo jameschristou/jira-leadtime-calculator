@@ -11,6 +11,7 @@ namespace jira_leadtime_calculator.JiraApiClient
     public interface IJiraApiClient
     {
         Task<SearchIssuesResponseDto> SearchIssues(string jql);
+        Task<IssueChangeLogResponse> GetIssueChangeLog(string issueKey);
     }
 
     public class SearchIssuesResponseDto
@@ -35,6 +36,8 @@ namespace jira_leadtime_calculator.JiraApiClient
         public JiraPropertyWithIdOrKey parent { get; set; }
         public JiraPropertyWithIdOrKey project { get; set; }
         public JiraUserData assignee { get; set; }
+        public string statuscategorychangedate { get; set; }
+        public string created { get; set; }
     }
 
     public class JiraUserData
@@ -70,6 +73,24 @@ namespace jira_leadtime_calculator.JiraApiClient
         }
     }
 
+    public class IssueChangeLogResponse
+    {
+        public List<IssueChangeLogDto> values { get; set; }
+    }
+
+    public class IssueChangeLogDto
+    {
+        public string created { get; set; }
+        public List<IssueChangeLogItemDto> items { get; set; }
+    }
+
+    public class IssueChangeLogItemDto
+    {
+        public string field { get; set; }
+        public string fromString { get; set; }
+        public string toString { get; set; }
+    }
+
     public class JiraApiClient : IJiraApiClient
     {
         private static string _baseUrl = "";
@@ -84,6 +105,8 @@ namespace jira_leadtime_calculator.JiraApiClient
 
         public async Task<SearchIssuesResponseDto> SearchIssues(string jql)
         {
+            // using https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-events-get
+
             if (string.IsNullOrEmpty(jql))
             {
                 return new SearchIssuesResponseDto
@@ -104,6 +127,38 @@ namespace jira_leadtime_calculator.JiraApiClient
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = JsonSerializer.Deserialize<SearchIssuesResponseDto>(await response.Content.ReadAsStringAsync());
+
+                    if (responseContent == null)
+                    {
+                        throw new Exception("Unable to get search results");
+                    }
+
+                    return responseContent;
+                }
+
+                throw new Exception("Unable to get search results");
+            }
+        }
+
+        public async Task<IssueChangeLogResponse> GetIssueChangeLog(string issueKey)
+        {
+            if (string.IsNullOrEmpty(issueKey))
+            {
+                return new IssueChangeLogResponse();
+            }
+
+            var url = $"{_baseUrl}/rest/api/2/issue/{issueKey}/changelog";
+
+            using (var response = await _httpClient.SendAsync(BuildRequest(url, HttpMethod.Get)))
+            {
+                if (response == null || !response.IsSuccessStatusCode)
+                {
+                    throw new Exception("Unable to get search results");
+                }
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = JsonSerializer.Deserialize<IssueChangeLogResponse>(await response.Content.ReadAsStringAsync());
 
                     if (responseContent == null)
                     {
