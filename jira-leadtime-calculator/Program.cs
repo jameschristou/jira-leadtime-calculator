@@ -1,5 +1,8 @@
 ﻿using jira_leadtime_calculator;
+using jira_leadtime_calculator.Infrastructure;
 using jira_leadtime_calculator.JiraApiClient;
+using jira_leadtime_calculator.Settings;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -15,12 +18,13 @@ try
     // 3. for each issue, check the data in the sheet vs latest data from jira. If the status has changed, then we need to get the latest changelog data
     // 4. update the sheet with latest data
 
-    var jql = "parent=\"ABC-123\" ORDER BY created ASC";
+    var jql = "parent=\"ABC-273\" ORDER BY created ASC";
 
     var leadTimeData = new List<LeadTimeData>();
 
     // Get the data from jira
     var jiraService = services.GetService<JiraService>();
+    var leadTimeCalculator = services.GetService<LeadTimeCalculator>();
 
     var issues = await jiraService.GetIssues(jql);
 
@@ -39,7 +43,8 @@ try
             DateMovedToReadyToTest = issueChangeLog.DateMovedToReadyToTest,
             DateMovedToInTest = issueChangeLog.DateMovedToInTest,
             DateMovedToReadyToRelease = issueChangeLog.DateMovedToReadyToRelease,
-            DateResolved = issueChangeLog.DateResolved
+            DateResolved = issueChangeLog.DateResolved,
+            TotalLeadTimeDays = leadTimeCalculator.Calculate(issue)
         });
     }
 
@@ -66,5 +71,18 @@ IHostBuilder CreateHostBuilder(string[] strings)
             services.AddTransient<JiraService>();
             services.AddTransient<IJiraApiClient, JiraApiClient>();
             services.AddTransient<GoogleSheetService>();
+            services.AddTransient<LeadTimeCalculator>();
+
+            // settings
+            var configuration = GetConfiguration();
+            services.AddConfig<PublicHolidaySettings>(configuration, "PublicHolidaySettings");
         });
+}
+
+IConfigurationRoot GetConfiguration()
+{
+    var config = new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json", true, true);
+
+    return config.Build();
 }

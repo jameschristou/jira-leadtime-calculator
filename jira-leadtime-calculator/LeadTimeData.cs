@@ -12,17 +12,6 @@
         public DateTime? DateMovedToInTest { get; set; } // In Test, Test Feedback
         public DateTime? DateMovedToReadyToRelease { get; set; } // Ready to Release
         public DateTime? DateResolved { get; set; }
-        public int TotalLeadTimeDays
-        {
-            get
-            {
-                if (DateResolved.HasValue)
-                {
-                    return (DateResolved.Value - DateCreated).Days;
-                }
-
-                return 0;
-            }
-        }
+        public int TotalLeadTimeDays { get; set; }
     }
 }

@@ -12,9 +12,10 @@ namespace jira_leadtime_calculator
         protected readonly string _spreadsheetId = "";
         private readonly GoogleCredential _credential;
         private readonly string _credentialPath = "";
+        private readonly LeadTimeCalculator _leadTimeCalculator;
         protected SheetsService _sheetsService;
 
-        public GoogleSheetService()
+        public GoogleSheetService(LeadTimeCalculator leadTimeCalculator)
         {
             _credential = GoogleCredential.FromFile(_credentialPath).CreateScoped(SheetsService.Scope.Spreadsheets);
             _sheetsService = new SheetsService(new BaseClientService.Initializer()
@@ -22,6 +23,8 @@ namespace jira_leadtime_calculator
                 HttpClientInitializer = _credential,
                 ApplicationName = _applicationName,
             });
+
+            _leadTimeCalculator = leadTimeCalculator;
         }
 
         public async Task WriteIssuesToSheet(List<LeadTimeData> issues)
