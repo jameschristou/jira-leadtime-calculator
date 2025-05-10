@@ -32,20 +32,24 @@ try
     {
         var issueChangeLog = await jiraService.GetIssueStatusChangeData(issue.IssueKey);
 
-        leadTimeData.Add(new LeadTimeData
+        var issueLeadTimeData = new LeadTimeData
         {
             JiraIssueKey = issue.IssueKey,
             Summary = issue.Summary,
             CurrentStatus = issue.Status,
+            Assignee = issue.Assignee,
             DateCreated = issue.Created,
             DateMovedToInProgress = issueChangeLog.DateMovedToInProgress,
             DateMovedToInReview = issueChangeLog.DateMovedToInReview,
             DateMovedToReadyToTest = issueChangeLog.DateMovedToReadyToTest,
             DateMovedToInTest = issueChangeLog.DateMovedToInTest,
             DateMovedToReadyToRelease = issueChangeLog.DateMovedToReadyToRelease,
-            DateResolved = issueChangeLog.DateResolved,
-            TotalLeadTimeDays = leadTimeCalculator.Calculate(issue)
-        });
+            DateResolved = issueChangeLog.DateResolved
+        };
+
+        issueLeadTimeData.TotalLeadTimeDays = leadTimeCalculator.Calculate(issueLeadTimeData);
+
+        leadTimeData.Add(issueLeadTimeData);
     }
 
     var sheetService = services.GetService<GoogleSheetService>();
@@ -56,7 +60,7 @@ try
 }
 catch (Exception e)
 {
-    Console.WriteLine(e.Message);
+    Console.WriteLine("$Exception occurred:{e.Message}");
 }
 
 Console.WriteLine("Finished");
@@ -72,10 +76,12 @@ IHostBuilder CreateHostBuilder(string[] strings)
             services.AddTransient<IJiraApiClient, JiraApiClient>();
             services.AddTransient<GoogleSheetService>();
             services.AddTransient<LeadTimeCalculator>();
+            services.AddTransient<ILeaveService, LeaveService>();
 
             // settings
             var configuration = GetConfiguration();
             services.AddConfig<PublicHolidaySettings>(configuration, "PublicHolidaySettings");
+            services.AddConfig<PeopleSettings>(configuration, "PeopleSettings");
         });
 }
 

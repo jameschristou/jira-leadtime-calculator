@@ -70,6 +70,7 @@ namespace jira_leadtime_calculator
                         new CellData { UserEnteredValue = new ExtendedValue { StringValue = issue.JiraIssueKey } },
                         new CellData { UserEnteredValue = new ExtendedValue { StringValue = issue.Summary } },
                         new CellData { UserEnteredValue = new ExtendedValue { StringValue = issue.CurrentStatus } },
+                        new CellData { UserEnteredValue = new ExtendedValue { StringValue = issue.Assignee } },
                         CreateDateCell(issue.DateCreated),
                         CreateDateCell(issue.DateMovedToInProgress),
                         CreateDateCell(issue.DateMovedToInReview),

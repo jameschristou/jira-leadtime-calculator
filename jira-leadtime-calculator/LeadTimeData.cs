@@ -5,6 +5,7 @@
         public string JiraIssueKey { get; set; }
         public string Summary { get; set; }
         public string CurrentStatus { get; set; }
+        public string Assignee { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime? DateMovedToInProgress { get; set; } // In Progress
         public DateTime? DateMovedToInReview { get; set; }

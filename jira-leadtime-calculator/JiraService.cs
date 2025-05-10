@@ -1,11 +1,4 @@
-﻿using Google.Apis.Sheets.v4.Data;
-using jira_leadtime_calculator.JiraApiClient;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Google.Apis.Requests.BatchRequest;
+﻿using jira_leadtime_calculator.JiraApiClient;
 
 namespace jira_leadtime_calculator
 {
@@ -14,6 +7,7 @@ namespace jira_leadtime_calculator
         public string IssueKey { get; set; }
         public string Summary { get; set; }
         public string Status { get; set; }
+        public string Assignee { get; set; }
         public DateTime? DateMovedToInProgress { get; set; } // In Progress
         public DateTime? DateMovedToInReview { get; set; }
         public DateTime? DateMovedToReadyToTest { get; set; } // Ready to Test
@@ -63,6 +57,7 @@ namespace jira_leadtime_calculator
                         IssueKey = x.key,
                         Summary = x.fields.summary,
                         Status = x.fields.status.name,
+                        Assignee = x.fields.assignee?.displayName,
                         Created = DateTime.Parse(x.fields.created)
                     };
                 }
