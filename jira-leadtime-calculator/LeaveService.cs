@@ -34,7 +34,18 @@ namespace jira_leadtime_calculator
                 return new List<DateTime>(); 
             }
 
-            return countryPublicHolidays.PublicHolidays.Select(x => x.Date).ToList();
+            var leaveDates = countryPublicHolidays.PublicHolidays.Select(x => x.Date).ToList();
+
+            if(personSettings.LeaveDays != null)
+            {
+                // need to also apply the individual's leave dates
+                leaveDates.AddRange(personSettings.LeaveDays);
+            }
+            
+            return leaveDates
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
         }
     }
 }

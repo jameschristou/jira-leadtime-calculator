@@ -74,14 +74,16 @@ namespace jira_leadtime_calculator
         {
             var response = await _apiClient.GetIssueChangeLog(issueKey);
 
+            var changeLogs = response.values.OrderByDescending(x => x.created).ToList();
+
             return new IssueStatusChangeData
             {
-                DateMovedToInProgress = GetStatusChangeDate("In Progress", response.values),
-                DateMovedToInReview = GetStatusChangeDate("In Review", response.values),
-                DateMovedToReadyToTest = GetStatusChangeDate("Ready to Test", response.values),
-                DateMovedToInTest = GetStatusChangeDate("In Test", response.values),
-                DateMovedToReadyToRelease = GetStatusChangeDate("Ready to Release", response.values),
-                DateResolved = GetStatusChangeDate("Done", response.values)
+                DateMovedToInProgress = GetStatusChangeDate("In Progress", changeLogs),
+                DateMovedToInReview = GetStatusChangeDate("In Review", changeLogs),
+                DateMovedToReadyToTest = GetStatusChangeDate("Ready to Test", changeLogs),
+                DateMovedToInTest = GetStatusChangeDate("In Test", changeLogs),
+                DateMovedToReadyToRelease = GetStatusChangeDate("Ready to Release", changeLogs),
+                DateResolved = GetStatusChangeDate("Done", changeLogs)
             };
         }
 

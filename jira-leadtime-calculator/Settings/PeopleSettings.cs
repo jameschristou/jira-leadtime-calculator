@@ -8,5 +8,6 @@
     {
         public string Name { get; set; }
         public string Country { get; set; }
+        public List<DateTime> LeaveDays { get; set; }
     }
 }
