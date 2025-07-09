@@ -1,22 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text;
-using System.Threading.Tasks;
 using System.Text.Json;
 
 namespace jira_leadtime_calculator.JiraApiClient
 {
     public interface IJiraApiClient
     {
-        Task<SearchIssuesResponseDto> SearchIssues(string jql);
+        Task<SearchIssuesResponseDto> SearchIssues(string jql, int resultsStartIndex, int pageSize);
         Task<IssueChangeLogResponse> GetIssueChangeLog(string issueKey);
     }
 
     public class SearchIssuesResponseDto
     {
         public List<GetIssueResponseDto> issues { get; set; }
+        public int total { get; set; } // total number of results
     }
 
     public class GetIssueResponseDto
@@ -103,9 +100,9 @@ namespace jira_leadtime_calculator.JiraApiClient
             _httpClient = httpClient;
         }
 
-        public async Task<SearchIssuesResponseDto> SearchIssues(string jql)
+        public async Task<SearchIssuesResponseDto> SearchIssues(string jql, int resultsStartIndex, int pageSize)
         {
-            // using https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-events-get
+            // using https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-search/#api-rest-api-2-search-get
 
             if (string.IsNullOrEmpty(jql))
             {
@@ -115,7 +112,7 @@ namespace jira_leadtime_calculator.JiraApiClient
                 };
             }
 
-            var url = $"{_baseUrl}/rest/api/2/search?jql={jql}";
+            var url = $"{_baseUrl}/rest/api/2/search?jql={jql}&startAt={resultsStartIndex}&maxResults={pageSize}";
 
             using (var response = await _httpClient.SendAsync(BuildRequest(url, HttpMethod.Get)))
             {
@@ -142,6 +139,8 @@ namespace jira_leadtime_calculator.JiraApiClient
 
         public async Task<IssueChangeLogResponse> GetIssueChangeLog(string issueKey)
         {
+            // using https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-issue-issueidorkey-changelog-get
+
             if (string.IsNullOrEmpty(issueKey))
             {
                 return new IssueChangeLogResponse();

@@ -1,4 +1,5 @@
 ﻿using jira_leadtime_calculator.JiraApiClient;
+using System.Collections.Generic;
 
 namespace jira_leadtime_calculator
 {
@@ -43,27 +44,45 @@ namespace jira_leadtime_calculator
 
         public async Task<List<IssueData>> GetIssues(string jql)
         {
-            var response = await _apiClient.SearchIssues(jql);
+            var pageNumber = 1;
+            var pageSize = 50;
 
-            return response.issues.Select(x =>
+            var results = new List<IssueData>();
+
+            while(1 == 1)
             {
-                if (int.TryParse(x.id, out var id))
-                {
-                    // try and get 
-                    var statusChangedDate = DateTime.Parse(x.fields.statuscategorychangedate);
+                var startIndex = (pageNumber - 1) * pageSize;
+                var response = await _apiClient.SearchIssues(jql, startIndex, pageSize);
 
-                    return new IssueData
+                results.AddRange(response.issues.Select(x =>
+                {
+                    if (int.TryParse(x.id, out var id))
                     {
-                        IssueKey = x.key,
-                        Summary = x.fields.summary,
-                        Status = x.fields.status.name,
-                        Assignee = x.fields.assignee?.displayName,
-                        Created = DateTime.Parse(x.fields.created)
-                    };
+                        // try and get 
+                        var statusChangedDate = DateTime.Parse(x.fields.statuscategorychangedate);
+
+                        return new IssueData
+                        {
+                            IssueKey = x.key,
+                            Summary = x.fields.summary,
+                            Status = x.fields.status.name,
+                            Assignee = x.fields.assignee?.displayName,
+                            Created = DateTime.Parse(x.fields.created)
+                        };
+                    }
+
+                    throw new Exception($"Unable to retrieve jira");
+                }));
+
+                if (pageNumber*pageSize > response.total)
+                {
+                    break;
                 }
 
-                throw new Exception($"Unable to retrieve jira");
-            }).ToList();
+                pageNumber++;
+            }
+
+            return results;
 
             // for each of the issues returned we need to get their changelog data. This needs to be done individually for each jira issue
 
@@ -74,22 +93,31 @@ namespace jira_leadtime_calculator
         {
             var response = await _apiClient.GetIssueChangeLog(issueKey);
 
-            var changeLogs = response.values.OrderByDescending(x => x.created).ToList();
+            var changeLogs = response.values.OrderBy(x => x.created).ToList();
 
             return new IssueStatusChangeData
             {
-                DateMovedToInProgress = GetStatusChangeDate("In Progress", changeLogs),
-                DateMovedToInReview = GetStatusChangeDate("In Review", changeLogs),
-                DateMovedToReadyToTest = GetStatusChangeDate("Ready to Test", changeLogs),
-                DateMovedToInTest = GetStatusChangeDate("In Test", changeLogs),
-                DateMovedToReadyToRelease = GetStatusChangeDate("Ready to Release", changeLogs),
-                DateResolved = GetStatusChangeDate("Done", changeLogs)
+                DateMovedToInProgress = GetFirstStatusChangeDate("In Progress", changeLogs),
+                DateMovedToInReview = GetFirstStatusChangeDate("In Review", changeLogs),
+                DateMovedToReadyToTest = GetFirstStatusChangeDate("Ready to Test", changeLogs),
+                DateMovedToInTest = GetFirstStatusChangeDate("In Test", changeLogs),
+                DateMovedToReadyToRelease = GetFirstStatusChangeDate("Ready to Release", changeLogs),
+                DateResolved = GetLastStatusChangeDate("Done", changeLogs)
             };
         }
 
-        private DateTime? GetStatusChangeDate(string status, List<IssueChangeLogDto> changeLogs)
+        private DateTime? GetFirstStatusChangeDate(string status, List<IssueChangeLogDto> changeLogs)
         {
             var statusChangeItem = changeLogs.FirstOrDefault(x => x.items.Any(y => y.field == "status" && y.toString == status));
+
+            if (statusChangeItem == null) return null;
+
+            return DateTime.Parse(statusChangeItem.created);
+        }
+
+        private DateTime? GetLastStatusChangeDate(string status, List<IssueChangeLogDto> changeLogs)
+        {
+            var statusChangeItem = changeLogs.LastOrDefault(x => x.items.Any(y => y.field == "status" && y.toString == status));
 
             if (statusChangeItem == null) return null;
 

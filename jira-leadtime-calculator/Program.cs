@@ -30,6 +30,12 @@ try
 
     foreach(var issue in issues)
     {
+        if(issue.Status == "Rejected")
+        {
+            Console.WriteLine($"Issue {issue.IssueKey} is rejected. Skipping.");
+            continue;
+        }
+
         var issueChangeLog = await jiraService.GetIssueStatusChangeData(issue.IssueKey);
 
         var issueLeadTimeData = new LeadTimeData
@@ -44,7 +50,7 @@ try
             DateMovedToReadyToTest = issueChangeLog.DateMovedToReadyToTest,
             DateMovedToInTest = issueChangeLog.DateMovedToInTest,
             DateMovedToReadyToRelease = issueChangeLog.DateMovedToReadyToRelease,
-            DateResolved = issueChangeLog.DateResolved
+            DateResolved = issue.Status == "Done" ? issueChangeLog.DateResolved : null
         };
 
         issueLeadTimeData.TotalLeadTimeDays = leadTimeCalculator.Calculate(issueLeadTimeData);
